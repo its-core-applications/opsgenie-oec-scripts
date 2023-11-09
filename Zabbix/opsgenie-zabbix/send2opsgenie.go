@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/alexcesaro/log"
-	"github.com/alexcesaro/log/golog"
 	"io"
 	"io/ioutil"
 	"net"
@@ -19,6 +17,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alexcesaro/log"
+	"github.com/alexcesaro/log/golog"
 )
 
 var API_KEY = ""
@@ -33,8 +34,8 @@ var configParameters = map[string]string{"apiKey": API_KEY,
 	"zabbix2opsgenie.http.proxy.protocol": "https",
 	"zabbix2opsgenie.http.proxy.username": "",
 	"zabbix2opsgenie.http.proxy.password": ""}
-var configPath = "/home/opsgenie/oec/conf/opsgenie-integration.conf"
-var configPath2 = "/home/opsgenie/oec/conf/config.json"
+var configPath = "/etc/opsgenie/oec/conf/opsgenie-integration.conf"
+var configPath2 = "/etc/opsgenie/oec/conf/config.json"
 var levels = map[string]log.Level{"info": log.Info, "debug": log.Debug, "warning": log.Warning, "error": log.Error}
 var logger log.Logger
 
@@ -302,14 +303,14 @@ func parseFlags() map[string]string {
 
 	flag.Parse()
 
-	parameters["triggerName"] = removeSpecialCharacters(*triggerName)
+	parameters["triggerName"] = *triggerName
 	parameters["triggerId"] = removeSpecialCharacters(*triggerId)
 	parameters["triggerStatus"] = removeSpecialCharacters(*triggerStatus)
 	parameters["triggerSeverity"] = removeSpecialCharacters(*triggerSeverity)
 	parameters["triggerDescription"] = removeSpecialCharacters(*triggerDescription)
 	parameters["triggerUrl"] = *triggerUrl
 	parameters["triggerValue"] = removeSpecialCharacters(*triggerValue)
-	parameters["triggerHostGroupName"] = removeSpecialCharacters(*triggerHostGroupName)
+	parameters["triggerHostGroupName"] = *triggerHostGroupName
 	parameters["hostName"] = *hostName
 	parameters["ipAddress"] = *ipAddress
 	parameters["date"] = *date
