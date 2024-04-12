@@ -30,6 +30,13 @@ def parse_field(key, mandatory):
     return variable
 
 
+def parse_timeout():
+    parsed_timeout = args.get('http.timeout')
+    if not parsed_timeout:
+        return 30000
+    return int(parsed_timeout)
+
+
 def login_to_zabbix(user, password, url):
     login_params = {
         "jsonrpc": "2.0",
@@ -46,19 +53,11 @@ def login_to_zabbix(user, password, url):
     }
     login_result = requests.post(url, data=json.dumps(login_params), headers=content_headers, timeout=timeout)
     logging.debug(LOG_PREFIX + " login response: " + str(login_result.status_code) + " " + str(login_result.json()))
-    if login_result.json() and not (login_result.json()).get('error'):
-        return (login_result.json()).get('result')
+    if login_result.json() and not login_result.json().get('error'):
+        return login_result.json()['result']
     else:
         logging.error(
-            LOG_PREFIX + " Cannot login to Zabbix: Response " + str(login_result.status_code) + " " + str(
-                login_result.content))
-
-
-def parse_timeout():
-    parsed_timeout = args.get('http.timeout')
-    if not parsed_timeout:
-        return 30000
-    return int(parsed_timeout)
+            LOG_PREFIX + " Cannot login to Zabbix: Response " + str(login_result.status_code) + " " + str(login_result.content))
 
 
 def main():
@@ -77,7 +76,7 @@ def main():
 
     timeout = parse_timeout()
 
-    logging.info("Will execute " + action + " for alertId " + alert_id)
+    logging.info("Will execute " + str(action) + " for alertId " + str(alert_id))
 
     username = parse_field('user', True)
     password = parse_field('password', True)
@@ -97,10 +96,10 @@ def main():
             "Authorization": "GenieKey " + args['apiKey']
         }
         alert_response = requests.get(alert_api_url, headers=headers, timeout=timeout)
-        if alert_response.status_code < 299 and (alert_response.json()).get('data'):
+        if alert_response.status_code < 299 and alert_response.json()['data']:
             if action == "Acknowledge":
                 if source and str(source['name']).lower() == "zabbix":
-                    logging.warning("Opsgenie alert is already acknowledged by Zabbix. Discarding!!!")
+                    logging.warning("OpsGenie alert is already acknowledged by Zabbix. Discarding!!!")
                 else:
                     post_params = {
                         "jsonrpc": "2.0",
@@ -109,7 +108,8 @@ def main():
                         "params": {
                             "eventids": parse_from_details("eventId", alert_response),
                             "message": "Acknowledged by " + alert_response.json()['data']['report'][
-                                'acknowledgedBy'] + " via Opsgenie"
+                                'acknowledgedBy'] + " via Opsgenie",
+                            "action": 6
                         }
                     }
                     auth = login_to_zabbix(username, password, url)
@@ -120,13 +120,12 @@ def main():
                             "Content-Type": "application/json",
                         }
                         response = requests.post(url, data=json.dumps(post_params), headers=headers, timeout=timeout)
-                        if alert_response.json() and not (alert_response.json()).get('error'):
+                        if alert_response.json() and not alert_response.json().get('error'):
                             logging.info("Successfully executed at Zabbix.")
                             logging.debug("Zabbix response: " + str(response.json()))
                         else:
                             logging.warning(
-                                "Could not execute at Zabbix. Zabbix Response: " + str(
-                                    response.content) + " Status Code: " + str(response.status_code))
+                                "Could not execute at Zabbix. Zabbix Response: " + response.content + " Status Code: " + response.status_code)
                     else:
                         logging.warning(LOG_PREFIX + "Cannot login to Zabbix!")
         else:
